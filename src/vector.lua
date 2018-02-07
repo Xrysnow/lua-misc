@@ -4,17 +4,17 @@
 --- Copyright (C) 2018 Xrysnow. All rights reserved.
 ---
 
-std             = std or {}
+std           = std or {}
 
 ---@class vector
-local vector    = {}
-std.vector      = vector
+local vector  = {}
+std.vector    = vector
 
-vector.sort     = table.sort
-vector.remove   = table.remove
-vector.maxn     = table.maxn
-vector.concat   = table.concat
-vector.insert   = table.insert
+vector.sort   = table.sort
+vector.remove = table.remove
+vector.maxn   = table.maxn
+vector.concat = table.concat
+vector.insert = table.insert
 
 local function ctor(T)
     local ret = {}
@@ -24,8 +24,26 @@ local function ctor(T)
     })
     return ret
 end
-local mt = { __call = function(op, T)
-    return ctor(T)
+local mt = { __call = function(op, param)
+    if std.isvector(param) then
+        return param:copy()
+    elseif std.iscallable(param) then
+        return ctor(param)
+    elseif type(param) == 'table' then
+        local ret = ctor()
+        for i = 1, #param do
+            ret[i] = param[i]
+        end
+        return ret
+    elseif type(param) == 'number' or type(param) == 'string' then
+        return ctor(function()
+            return param
+        end)
+    elseif param == nil then
+        return ctor()
+    else
+        error("Can't construct vector from " .. tostring(param))
+    end
 end }
 setmetatable(vector, mt)
 
@@ -41,7 +59,7 @@ end
 
 function vector:at(n)
     if n > #self or n < 1 then
-        error('out of range')
+        error('Index out of range.')
     end
     return self[n]
 end
@@ -62,8 +80,10 @@ function vector:resize(n)
     for i = n + 1, self:size() do
         self[i] = nil
     end
-    for i = self:size() + 1, n do
-        self[i] = self._T()
+    if self._T then
+        for i = self:size() + 1, n do
+            self[i] = self._T()
+        end
     end
 end
 
