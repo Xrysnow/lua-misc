@@ -25,17 +25,18 @@ local function ctor(T)
     return ret
 end
 local mt = { __call = function(op, param)
+    local ty = type(param)
     if std.isvector(param) then
         return param:copy()
     elseif std.iscallable(param) then
         return ctor(param)
-    elseif type(param) == 'table' then
+    elseif ty == 'table' then
         local ret = ctor()
         for i = 1, #param do
             ret[i] = param[i]
         end
         return ret
-    elseif type(param) == 'number' or type(param) == 'string' then
+    elseif ty == 'number' or ty == 'string' or ty == 'boolean' then
         return ctor(function()
             return param
         end)
