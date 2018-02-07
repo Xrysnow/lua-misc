@@ -1,3 +1,3 @@
 # lua-misc
 
-Some unuseful codes in lua.
+Some uesless codes in lua.

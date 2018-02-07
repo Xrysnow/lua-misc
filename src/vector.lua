@@ -77,11 +77,15 @@ function vector:size()
     return #self
 end
 
-function vector:resize(n)
+function vector:resize(n, val)
     for i = n + 1, self:size() do
         self[i] = nil
     end
-    if self._T then
+    if val then
+        for i = self:size() + 1, n do
+            self[i] = val
+        end
+    elseif self._T then
         for i = self:size() + 1, n do
             self[i] = self._T()
         end
@@ -91,13 +95,13 @@ end
 function vector:erase(n, m)
     m        = m or n
     local ne = m - n + 1
-    for i = n, self:size() - ne do
+    for i = n, self:size() do
         self[i] = self[i + ne]
     end
 end
 
 function vector:clear()
-    self = vector(self._T)
+    self:erase(1,self:size())
 end
 
 function vector:empty()
