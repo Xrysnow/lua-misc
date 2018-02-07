@@ -10,12 +10,6 @@ std           = std or {}
 local vector  = {}
 std.vector    = vector
 
-vector.sort   = table.sort
-vector.remove = table.remove
-vector.maxn   = table.maxn
-vector.concat = table.concat
-vector.insert = table.insert
-
 local function ctor(T)
     local ret = {}
     ret._T    = T
@@ -48,14 +42,20 @@ local mt = { __call = function(op, param)
 end }
 setmetatable(vector, mt)
 
-function vector:push_back(v)
-    self:insert(v)
+
+-------------------------------------------------
+---vector
+-------------------------------------------------
+
+
+--element access---------------------------------
+
+function vector:front()
+    return self[1]
 end
 
-function vector:pop_back()
-    local ret   = self[#self]
-    self[#self] = nil
-    return ret
+function vector:back()
+    return self[#self]
 end
 
 function vector:at(n)
@@ -65,12 +65,10 @@ function vector:at(n)
     return self[n]
 end
 
-function vector:front()
-    return self[1]
-end
+--capacity---------------------------------------
 
-function vector:back()
-    return self[#self]
+function vector:empty()
+    return self:size() == 0
 end
 
 function vector:size()
@@ -92,6 +90,12 @@ function vector:resize(n, val)
     end
 end
 
+--modifiers--------------------------------------
+
+function vector:clear()
+    self:erase(1,self:size())
+end
+
 function vector:erase(n, m)
     m        = m or n
     local ne = m - n + 1
@@ -100,18 +104,26 @@ function vector:erase(n, m)
     end
 end
 
-function vector:clear()
-    self:erase(1,self:size())
+function vector:push_back(v)
+    self:insert(v)
 end
 
-function vector:empty()
-    return self:size() == 0
+function vector:pop_back()
+    local ret   = self[#self]
+    self[#self] = nil
+    return ret
 end
+
+--allocator--------------------------------------
 
 function vector:get_allocator()
     return self._T
 end
 
+--copy-------------------------------------------
+
+---copy
+---@return vector
 function vector:copy()
     local ret = vector(self._T)
     for i = 1, self:size() do
