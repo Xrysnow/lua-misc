@@ -71,7 +71,7 @@ function math.sign(v)
     end
 end
 
----from Microsoft.Xna.Framework.MathHelper
+---from Microsoft.Xna.Framework.MathHelper--------
 
 ---C# MathHelper.Barycentric
 ---@param v1 number
@@ -106,5 +106,43 @@ function math.wrapangle(v)
     else
         return a
     end
+end
+
+--metrics-----------------------------------------
+
+function math.EuclideanDistance(v1, v2)
+    local sum = 0
+    for i = 1, #v1 do
+        local d = v1[i] - v2[i]
+        sum     = sum + d * d
+    end
+    return math.sqrt(sum)
+end
+
+function math.ManhattanDistance(v1, v2)
+    local sum = 0
+    for i = 1, #v1 do
+        sum = sum + math.abs(v1[i] - v2[i])
+    end
+    return sum
+end
+
+function math.ChebyshevDistance(v1, v2)
+    local ret = 0
+    for i = 1, #v1 do
+        local d = math.abs(v1[i] - v2[i])
+        if d > ret then
+            ret = d
+        end
+    end
+    return ret
+end
+
+function math.MinkowskiDistance(v1, v2, p)
+    local sum = 0
+    for i = 1, #v1 do
+        sum = sum + math.pow(math.abs(v1[i] - v2[i]), p)
+    end
+    return math.pow(sum, 1 / p)
 end
 
