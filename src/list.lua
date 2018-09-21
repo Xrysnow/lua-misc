@@ -4,20 +4,20 @@
 --- Copyright (C) 2018 Xrysnow. All rights reserved.
 ---
 
-std                 = std or {}
+std = std or {}
 
----@class list
----@field protected _begin list_iterator
----@field protected _end list_iterator
-local list          = {}
-std.list            = list
----@class list_iterator
----@field public prev list_iterator
----@field public next list_iterator
+---@class std.list
+---@field protected _begin std.list_iterator
+---@field protected _end std.list_iterator
+local list = {}
+std.list = list
+---@class std.list_iterator
+---@field public prev std.list_iterator
+---@field public next std.list_iterator
 ---@field public key string
 ---@field public val any
 local list_iterator = {}
-std.list_iterator   = list_iterator
+std.list_iterator = list_iterator
 
 
 -------------------------------------------------
@@ -31,7 +31,7 @@ local function iter_ctor(v, prev, next)
         prev = prev,
         next = next,
     }
-    ret.key   = tostring(ret)
+    ret.key = tostring(ret)
     setmetatable(ret, {
         __index = list_iterator
     })
@@ -53,15 +53,16 @@ function list_iterator:advance(n)
     for i = 1, -n do
         ret = ret.prev
     end
+    assert(ret)
     return ret
 end
 
 function list_iterator:move(n)
-    local i   = self:advance(n)
-    self.val  = i.val
+    local i = self:advance(n)
+    self.val = i.val
     self.prev = i.prev
     self.next = i.next
-    self.key  = i.key
+    self.key = i.key
 end
 
 function list_iterator:inc()
@@ -79,11 +80,11 @@ end
 
 
 local function list_ctor(T)
-    local ret  = {
+    local ret = {
         _end = {},
     }
-    ret._begit = ret._end
-    ret._T     = T
+    ret._begin = ret._end
+    ret._T = T or 0
     setmetatable(ret, {
         __index = list
     })
@@ -93,7 +94,7 @@ local mt_list = { __call = function(op, param)
     local ty = type(param)
     if std.islist(param) then
         return param:copy()
-    elseif std.iscallable(param) then
+    elseif std.is_callable(param) then
         return list_ctor(param)
     elseif ty == 'table' then
         local ret = list_ctor()
@@ -111,12 +112,13 @@ local mt_list = { __call = function(op, param)
         error("Can't construct list from " .. tostring(param))
     end
 end }
+setmetatable(list, mt_list)
 
 ---alloc
 ---@param v any
----@param prev list_iterator
----@param next list_iterator
----@return string,list_iterator
+---@param prev std.list_iterator
+---@param next std.list_iterator
+---@return string,std.list_iterator
 local function alloc(v, prev, next)
     local ret = list_iterator(v, prev, next)
     return ret.key, ret
@@ -161,7 +163,7 @@ end
 ---### Test whether container is empty
 ---Returns whether the list container is empty (i.e. whether its size is 0).
 function list:empty()
-    return self._begin == self._end
+    return self._begin.next == nil
 end
 
 ---### Return size
@@ -169,10 +171,10 @@ end
 ---@return number
 function list:size()
     local ret = 0
-    for _, _ in pairs(self) do
+    for _, __ in pairs(self) do
         ret = ret + 1
     end
-    return ret - 2
+    return ret - 3
 end
 
 --modifiers--------------------------------------
@@ -186,32 +188,43 @@ end
 ---### Insert elements
 ---The container is extended by inserting new elements before the element at the specified position.
 ---Return value: An iterator that points to the first of the newly inserted elements.
----@param it list_iterator
+---@param it std.list_iterator
 ---@param v any
----@return list_iterator
+---@return std.list_iterator
 function list:insert(it, v)
-    local key, it_ = alloc(v, it.prev, it)
-    self[key]      = it_
-    if it == self._begin then
-        self._begin = it_
+    if self:empty() then
+        self._begin = { val = v }
+        self._begin.key = tostring(self._begin)
+        self._end = {}
+        self._begin.next = self._end
+        self._end.prev = self._begin
+        self[self._begin.key] = self._begin
+        return self._begin
     else
-        it.prev.next = it_
-        it.prev      = it_
+        local key, it_ = alloc(v, it.prev, it)
+        self[key] = it_
+        if it == self._begin then
+            self._begin = it_
+        else
+            it.prev.next = it_
+            it.prev = it_
+        end
+        return it_
     end
-    return it_
 end
 
 ---### Erase elements
 ---Removes from the list container either a single element (position) or a range of elements ([first,last)).
 ---Return value: An iterator pointing to the element that followed the last element erased by the function call. This is the container end if the operation erased the last element in the sequence.
----@param it list_iterator
----@param optional it2 list_iterator
+---@param it std.list_iterator
+---@param optional it2 std.list_iterator
 function list:erase(it, it2)
-    it2     = it2 or it.next
+    assert(it ~= self._end)
+    it2 = it2 or it.next
     local i = it
     while i and i ~= it2 do
         self[i.key] = nil
-        i           = i.next
+        i = i.next
     end
     it2.prev = it.prev
     if it == self._begin then
@@ -278,6 +291,42 @@ function list:remove_if(p)
     end
 end
 
+function list:insert_if(v, p)
+    if self:empty() then
+        if p(nil, nil) then
+            self:push_back(v)
+            return
+        end
+    elseif self._begin == self._end.prev then
+        if p(nil, self._begin.val) then
+            self:push_front(v)
+            return
+        elseif p(self._begin.val, nil) then
+            self:push_back(v)
+            return
+        end
+    else
+        if p(nil, self._begin.val) then
+            self:push_front(v)
+            return
+        end
+
+        local it = self._begin
+        while it ~= self._end.prev do
+            if p(it.val, it.next.val) then
+                self:insert(it, v)
+                return
+            end
+            it = it.next
+        end
+
+        if p(self._end.prev.val, nil) then
+            self:push_back(v)
+            return
+        end
+    end
+end
+
 --allocator--------------------------------------
 
 ---### Get allocator
@@ -289,7 +338,7 @@ end
 --copy-------------------------------------------
 
 ---copy
----@return list
+---@return std.list
 function list:copy()
     local ret = list(self._T)
     for k, v in pairs(self) do
@@ -299,6 +348,56 @@ function list:copy()
 end
 
 function std.islist(v)
-    return getmetatable(v) == mt_list
+    local mt = getmetatable(v)
+    return mt and mt.__index == list
 end
 
+
+------------------------
+
+function std.list_iter(list)
+    assert(std.islist(list))
+    local iter = function(t, it)
+        if it then
+            return it.next, it.val
+        else
+            return nil
+        end
+    end
+    return iter, list, list._begin
+end
+
+------------------------
+--[[
+local lst = std.list()
+assert(lst:empty())
+
+lst:push_back(1)
+lst:push_back(2)
+lst:push_back(3)
+lst:push_back(4)
+lst:push_back(5)
+
+assert(lst:size() == 5)
+assert(not lst:empty())
+
+lst:remove(3)
+assert(lst:size() == 4)
+lst:pop_front()
+assert(lst:size() == 3)
+lst:pop_back()
+assert(lst:size() == 2)
+
+assert(lst:front() == lst:begin().val)
+assert(lst:back() == lst:end_().prev.val)
+
+lst:push_front(0)
+lst:push_back(6)
+
+assert(lst:front() == lst:begin().val)
+assert(lst:back() == lst:end_().prev.val)
+
+--for it, v in std.list_iter(lst) do
+--    SystemLog(tostring(v))
+--end
+]]

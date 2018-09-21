@@ -12,9 +12,9 @@ std = std or {}
 ---@return fun(...):any
 function std.bind(f, ...)
     local argsSuper = { ... }
-    local n1        = select("#", ...)
+    local n1 = select("#", ...)
     return function(...)
-        local args    = { ... }
+        local args = { ... }
         local argsOut = { unpack(argsSuper, 1, n1) }
         for i, v in pairs(args) do
             argsOut[n1 + i] = v
@@ -40,9 +40,9 @@ function std.fvoid()
 end
 
 ---
----iscallable
+---is_callable
 ---@param f table|fun(...):any
-function std.iscallable(f)
+function std.is_callable(f)
     if type(f) == 'function' then
         return true
     elseif type(f) == 'table' then
@@ -51,8 +51,69 @@ function std.iscallable(f)
 end
 
 ---
+---make_once
+---@param f fun(...):any
+function std.make_once(f)
+    local exe = false
+    return function()
+        if not exe then
+            f()
+            exe = true
+        end
+    end
+end
+
+---oparators
+
+std.plus = function(a, b)
+    return a + b
+end
+std.minus = function(a, b)
+    return a - b
+end
+std.negate = function(a)
+    return -a
+end
+std.multiplies = function(a, b)
+    return a * b
+end
+std.divides = function(a, b)
+    return a / b
+end
+std.modulus = function(a, b)
+    return a % b
+end
+std.logical_and = function(a, b)
+    return a and b
+end
+std.logical_or = function(a, b)
+    return a or b
+end
+std.logical_not = function(a)
+    return not a
+end
+std.equal_to = function(a, b)
+    return a == b
+end
+std.not_equal_to = function(a, b)
+    return a ~= b
+end
+std.greater = function(a, b)
+    return a > b
+end
+std.less = function(a, b)
+    return a < b
+end
+std.greater_equal = function(a, b)
+    return a >= b
+end
+std.less_equal = function(a, b)
+    return a <= b
+end
+
+---
+---comparators
 ---@type table<string,fun(a:any,b:any):boolean>
----comparator
 ---You can use following keys to get a comparator:
 --->### '=='　'>='　'<='　'~='　'>'　'<'
 ---You can add '#' to the front of the key to compare length,
@@ -61,24 +122,12 @@ end
 --->`f1 = Function.comparator［'>='］`
 --->`f2 = Function.comparator［'f>='］(f)`
 std.comparator = {
-    ['==']  = function(a, b)
-        return a == b
-    end,
-    ['>=']  = function(a, b)
-        return a >= b
-    end,
-    ['<=']  = function(a, b)
-        return a <= b
-    end,
-    ['~=']  = function(a, b)
-        return a ~= b
-    end,
-    ['>']   = function(a, b)
-        return a > b
-    end,
-    ['<']   = function(a, b)
-        return a < b
-    end,
+    ['==']  = std.equal_to,
+    ['>=']  = std.greater_equal,
+    ['<=']  = std.less_equal,
+    ['~=']  = std.not_equal_to,
+    ['>']   = std.greater,
+    ['<']   = std.less,
 
     ['#=='] = function(a, b)
         return #a == #b
